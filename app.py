@@ -1600,7 +1600,7 @@ if page == "AI Analyst":
 
                 with st.container(border=True):
                     render_section_label("Retrieved evidence")
-                    # Group chunks by page so same-page results appear together
+                    # Group chunks by page
                     pages_seen = {}
                     for r in results:
                         pg = r["page_number"]

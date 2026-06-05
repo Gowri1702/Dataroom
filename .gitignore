@@ -1,0 +1,66 @@
+# ── Environment & Secrets ─────────────────────────────────────────────────────
+.env
+.env.*
+ .env
+*.key
+secrets.toml
+.streamlit/secrets.toml
+
+# ── Python ────────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg-info/
+*.egg
+dist/
+build/
+.eggs/
+
+# ── Virtual Environment ───────────────────────────────────────────────────────
+venv/
+.venv/
+env/
+.env/
+
+# ── Testing & Coverage ────────────────────────────────────────────────────────
+.pytest_cache/
+.coverage
+htmlcov/
+coverage.xml
+*.coveragerc
+
+# ── Jupyter ───────────────────────────────────────────────────────────────────
+.ipynb_checkpoints/
+*.ipynb
+
+# ── ML Artifacts (large, regeneratable) ──────────────────────────────────────
+*.faiss
+*.index
+*.pkl
+*.joblib
+*.h5
+*.pt
+*.pth
+*.npy
+*.npz
+
+# ── Generated Files ───────────────────────────────────────────────────────────
+get-pip.py
+dataroom_ai_explained.pdf
+evals/results_latest.json
+
+# ── macOS ─────────────────────────────────────────────────────────────────────
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# ── Claude Code internals ─────────────────────────────────────────────────────
+.agents/
+.claude/
+
+# ── IDE ───────────────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo

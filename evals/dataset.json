@@ -1,0 +1,288 @@
+{
+  "router_eval": [
+    {"id": "r01", "question": "What does the PDF say about revenue?", "expected_route": "pdf"},
+    {"id": "r02", "question": "Summarize the main takeaways from the document.", "expected_route": "pdf"},
+    {"id": "r03", "question": "What are the key risks mentioned in the report?", "expected_route": "pdf"},
+    {"id": "r04", "question": "What does the document say about Q3 performance?", "expected_route": "pdf"},
+    {"id": "r05", "question": "Which page mentions the CEO's statement?", "expected_route": "pdf"},
+    {"id": "r06", "question": "What are the financial highlights?", "expected_route": "pdf"},
+    {"id": "r07", "question": "What is the total revenue in the dataset?", "expected_route": "csv"},
+    {"id": "r08", "question": "Give me a summary of the dataset.", "expected_route": "csv"},
+    {"id": "r09", "question": "Which columns have missing values?", "expected_route": "csv"},
+    {"id": "r10", "question": "What is the average ARR?", "expected_route": "csv"},
+    {"id": "r11", "question": "Show total MRR by region.", "expected_route": "csv"},
+    {"id": "r12", "question": "What are the numeric columns?", "expected_route": "csv"},
+    {"id": "r13", "question": "How many rows are in the data?", "expected_route": "csv"},
+    {"id": "r14", "question": "What is the maximum seats value?", "expected_route": "csv"},
+    {"id": "r15", "question": "Does the revenue claim in the report match the CSV?", "expected_route": "both"},
+    {"id": "r16", "question": "Verify the profit growth claim against the data.", "expected_route": "both"},
+    {"id": "r17", "question": "Does the PDF match the spreadsheet for ARR?", "expected_route": "both"},
+    {"id": "r18", "question": "Compare the report's sales figures with the dataset.", "expected_route": "both"},
+    {"id": "r19", "question": "Are the claims in the document consistent with the CSV?", "expected_route": "both"},
+    {"id": "r20", "question": "Validate the revenue increase claim against the data.", "expected_route": "both"}
+  ],
+
+  "retrieval_eval": [
+    {
+      "id": "ret01",
+      "question": "What does the document say about revenue growth?",
+      "expected_keywords": ["revenue", "growth", "increase"],
+      "expected_page_contains": "revenue"
+    },
+    {
+      "id": "ret02",
+      "question": "What risks are mentioned in the report?",
+      "expected_keywords": ["risk", "risks"],
+      "expected_page_contains": "risk"
+    },
+    {
+      "id": "ret03",
+      "question": "What are the financial highlights?",
+      "expected_keywords": ["financial", "revenue", "profit"],
+      "expected_page_contains": "financial"
+    },
+    {
+      "id": "ret04",
+      "question": "What does the report say about expenses?",
+      "expected_keywords": ["expense", "cost", "expenses"],
+      "expected_page_contains": "expense"
+    },
+    {
+      "id": "ret05",
+      "question": "What is stated about ARR or MRR?",
+      "expected_keywords": ["arr", "mrr", "recurring"],
+      "expected_page_contains": "arr"
+    },
+    {
+      "id": "ret06",
+      "question": "What does the document say about customers?",
+      "expected_keywords": ["customer", "customers", "client"],
+      "expected_page_contains": "customer"
+    },
+    {
+      "id": "ret07",
+      "question": "What is mentioned about profit margins?",
+      "expected_keywords": ["profit", "margin"],
+      "expected_page_contains": "profit"
+    },
+    {
+      "id": "ret08",
+      "question": "What does the report say about the market?",
+      "expected_keywords": ["market", "opportunity"],
+      "expected_page_contains": "market"
+    },
+    {
+      "id": "ret09",
+      "question": "What performance metrics are reported?",
+      "expected_keywords": ["metrics", "performance", "kpi"],
+      "expected_page_contains": "performance"
+    },
+    {
+      "id": "ret10",
+      "question": "What does the document say about growth strategy?",
+      "expected_keywords": ["strategy", "growth"],
+      "expected_page_contains": "strategy"
+    }
+  ],
+
+  "csv_eval": [
+    {
+      "id": "csv01",
+      "question": "Give me a summary of the dataset",
+      "expected_keywords": ["rows", "columns", "numeric", "categorical"],
+      "expects_chart": false
+    },
+    {
+      "id": "csv02",
+      "question": "Which columns have missing values?",
+      "expected_keywords": ["missing"],
+      "expects_chart": false
+    },
+    {
+      "id": "csv03",
+      "question": "What are the numeric columns?",
+      "expected_keywords": ["numeric"],
+      "expects_chart": false
+    },
+    {
+      "id": "csv04",
+      "question": "What is the average revenue?",
+      "expected_keywords": ["average", "revenue"],
+      "expects_chart": false
+    },
+    {
+      "id": "csv05",
+      "question": "What is the total ARR?",
+      "expected_keywords": ["total", "arr"],
+      "expects_chart": false
+    },
+    {
+      "id": "csv06",
+      "question": "What is the highest revenue value?",
+      "expected_keywords": ["highest", "revenue"],
+      "expects_chart": false
+    },
+    {
+      "id": "csv07",
+      "question": "Show total revenue by region",
+      "expected_keywords": ["revenue", "region"],
+      "expects_chart": true
+    },
+    {
+      "id": "csv08",
+      "question": "What is the minimum MRR?",
+      "expected_keywords": ["minimum", "mrr"],
+      "expects_chart": false
+    },
+    {
+      "id": "csv09",
+      "question": "Show average ARR by category",
+      "expected_keywords": ["arr", "category"],
+      "expects_chart": true
+    },
+    {
+      "id": "csv10",
+      "question": "How many rows does the dataset have?",
+      "expected_keywords": ["rows"],
+      "expects_chart": false
+    }
+  ],
+
+  "claim_eval": [
+    {
+      "id": "cl01",
+      "claim": "Revenue increased by 5%",
+      "csv_data": {
+        "revenue": [1000, 1010, 1020, 1050]
+      },
+      "expected_verdict": "Supported",
+      "note": "Actual change ~5% from first to last"
+    },
+    {
+      "id": "cl02",
+      "claim": "Revenue increased by 50%",
+      "csv_data": {
+        "revenue": [1000, 1010, 1020, 1050]
+      },
+      "expected_verdict": "Contradicted",
+      "note": "Actual change ~5%, claimed 50%"
+    },
+    {
+      "id": "cl03",
+      "claim": "Revenue decreased by 5%",
+      "csv_data": {
+        "revenue": [1000, 1010, 1020, 1050]
+      },
+      "expected_verdict": "Contradicted",
+      "note": "Revenue actually increased, not decreased"
+    },
+    {
+      "id": "cl04",
+      "claim": "Profit grew by 20%",
+      "csv_data": {
+        "profit": [100, 110, 115, 120]
+      },
+      "expected_verdict": "Supported",
+      "note": "Actual change 20% from 100 to 120"
+    },
+    {
+      "id": "cl05",
+      "claim": "Sales declined by 10%",
+      "csv_data": {
+        "sales": [200, 190, 185, 180]
+      },
+      "expected_verdict": "Supported",
+      "note": "Actual change -10%"
+    },
+    {
+      "id": "cl06",
+      "claim": "ARR increased by 30%",
+      "csv_data": {
+        "arr": [1000, 1100, 1200, 1300]
+      },
+      "expected_verdict": "Supported",
+      "note": "Actual change 30%"
+    },
+    {
+      "id": "cl07",
+      "claim": "Revenue increased by 10%",
+      "csv_data": {
+        "revenue": [1000, 900]
+      },
+      "expected_verdict": "Contradicted",
+      "note": "Revenue actually decreased"
+    },
+    {
+      "id": "cl08",
+      "claim": "Cost reduced by 15%",
+      "csv_data": {
+        "cost": [200, 185, 175, 170]
+      },
+      "expected_verdict": "Supported",
+      "note": "Actual reduction ~15%"
+    },
+    {
+      "id": "cl09",
+      "claim": "Expenses grew by 25%",
+      "csv_data": {
+        "expenses": [100, 110, 120, 125]
+      },
+      "expected_verdict": "Supported",
+      "note": "Actual change 25%"
+    },
+    {
+      "id": "cl10",
+      "claim": "Revenue increased by 5%",
+      "csv_data": {
+        "revenue": [0, 100, 200]
+      },
+      "expected_verdict": "Unverifiable",
+      "note": "First value is 0, cannot compute % change"
+    },
+    {
+      "id": "cl11",
+      "claim": "Revenue increased by 5%",
+      "csv_data": {
+        "irrelevant_col": [10, 20]
+      },
+      "expected_verdict": "Unverifiable",
+      "note": "No revenue column — threshold blocks the weak match, abstains correctly"
+    },
+    {
+      "id": "cl12",
+      "claim": "Profit increased by 100%",
+      "csv_data": {
+        "profit": [100, 150, 180, 200]
+      },
+      "expected_verdict": "Supported",
+      "note": "Actual change 100%"
+    },
+    {
+      "id": "cl13",
+      "claim": "MRR grew by 40%",
+      "csv_data": {
+        "mrr": [100, 120, 130, 140]
+      },
+      "expected_verdict": "Supported",
+      "note": "Actual change 40%"
+    },
+    {
+      "id": "cl14",
+      "claim": "Sales increased by 200%",
+      "csv_data": {
+        "sales": [100, 200, 250, 300]
+      },
+      "expected_verdict": "Supported",
+      "note": "Actual change 200%"
+    },
+    {
+      "id": "cl15",
+      "claim": "Revenue decreased by 50%",
+      "csv_data": {
+        "revenue": [1000, 500]
+      },
+      "expected_verdict": "Supported",
+      "note": "Actual change -50%"
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+streamlit
+pandas
+numpy
+plotly
+pymupdf
+python-dotenv
+sentence-transformers
+faiss-cpu
+scikit-learn
+openai
+torchvision
+rank_bm25
+rapidfuzz
+pytest
+fpdf2

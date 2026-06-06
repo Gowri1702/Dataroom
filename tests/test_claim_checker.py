@@ -1,16 +1,13 @@
-"""Tests for src/claim_checker.py"""
 import pandas as pd
 import pytest
 from src.claim_checker import (
     extract_claims_from_text,
     verify_claim_against_csv,
-    _extract_percent_change,
+    _extract_change_claim,
     _find_column,
     _extract_time_window,
 )
 
-
-# ── extract_claims_from_text ──────────────────────────────────────────────────
 
 class TestExtractClaims:
     def test_basic_increase_claim(self):
@@ -59,34 +56,58 @@ class TestExtractClaims:
         assert len(claims) == 0
 
 
-# ── _extract_percent_change ───────────────────────────────────────────────────
-
-class TestExtractPercentChange:
+class TestExtractChangeClaim:
     def test_increase(self):
-        pct, direction = _extract_percent_change("Revenue increased by 20%")
+        pct, direction, tol, mode = _extract_change_claim("Revenue increased by 20%")
         assert pct == 20.0
         assert direction == "increase"
+        assert mode is None
 
     def test_decrease(self):
-        pct, direction = _extract_percent_change("Costs declined by 7.5%")
+        pct, direction, tol, mode = _extract_change_claim("Costs declined by 7.5%")
         assert pct == 7.5
         assert direction == "decrease"
 
-    def test_no_percentage(self):
-        pct, direction = _extract_percent_change("Revenue grew significantly")
+    def test_no_percentage_no_multiplier(self):
+        pct, direction, tol, mode = _extract_change_claim("Revenue grew significantly")
         assert pct is None
 
     def test_no_direction(self):
-        pct, direction = _extract_percent_change("Revenue was 15% of total")
+        pct, direction, tol, mode = _extract_change_claim("Revenue was 15% of total")
         assert pct == 15.0
         assert direction is None
 
     def test_decimal_percentage(self):
-        pct, direction = _extract_percent_change("ARR grew by 3.14%")
+        pct, direction, tol, mode = _extract_change_claim("ARR grew by 3.14%")
         assert abs(pct - 3.14) < 0.001
 
+    def test_doubled(self):
+        pct, direction, tol, mode = _extract_change_claim("Revenue doubled last year")
+        assert pct == 100.0
+        assert direction == "increase"
+        assert tol == 20.0
+        assert mode is None
 
-# ── _find_column ──────────────────────────────────────────────────────────────
+    def test_tripled(self):
+        pct, direction, tol, mode = _extract_change_claim("Users tripled in Q3")
+        assert pct == 200.0
+        assert tol == 25.0
+
+    def test_halved(self):
+        pct, direction, tol, mode = _extract_change_claim("Churn halved this year")
+        assert pct == 50.0
+        assert direction == "decrease"
+
+    def test_more_than_doubled(self):
+        pct, direction, tol, mode = _extract_change_claim("Revenue more than doubled")
+        assert pct == 100.0
+        assert mode == "more_than_doubled"
+
+    def test_nearly_doubled(self):
+        pct, direction, tol, mode = _extract_change_claim("Sales nearly doubled")
+        assert pct == 100.0
+        assert tol == 30.0
+
 
 class TestFindColumn:
     def test_exact_match(self):
@@ -96,8 +117,6 @@ class TestFindColumn:
         assert score == 1.0
 
     def test_alias_match(self):
-        # "sales" is in the business-term map (maps to "revenue"), so it now
-        # resolves via "business-term" — higher priority than "alias"
         col, score, method = _find_column("sales grew by 10%", ["revenue", "profit"])
         assert col == "revenue"
         assert method in ("business-term", "alias")
@@ -109,7 +128,6 @@ class TestFindColumn:
 
     def test_no_match_returns_none(self):
         col, score, method = _find_column("completely unrelated text xyz", ["revenue"])
-        # Either None (no match) or a low-confidence fuzzy match
         if col is None:
             assert score == 0.0
 
@@ -117,7 +135,6 @@ class TestFindColumn:
         col, score, method = _find_column("monthly recurring revenue grew 5%", ["mrr", "arr"])
         assert col == "mrr"
 
-    # Fix 1 — business-term map
     def test_nps_maps_to_nps_score(self):
         col, score, method = _find_column("nps improved by 10%", ["nps_score", "revenue"])
         assert col == "nps_score"
@@ -132,7 +149,6 @@ class TestFindColumn:
 
     def test_headcount_maps_to_headcount(self):
         col, score, method = _find_column("headcount grew 15%", ["headcount", "revenue"])
-        # Exact match fires before business-term, but either is correct
         assert col == "headcount"
         assert score == 1.0
 
@@ -154,15 +170,12 @@ class TestFindColumn:
         assert method == "business-term"
 
     def test_longer_phrase_beats_shorter(self):
-        # "total revenue" should win over plain "revenue" in the term map
         col, _, method = _find_column(
             "total revenue increased by 5%",
             ["revenue_usd_thousands", "revenue"],
         )
         assert col == "revenue_usd_thousands"
 
-
-# ── _extract_time_window ──────────────────────────────────────────────────────
 
 class TestExtractTimeWindow:
     def test_quarter(self):
@@ -181,7 +194,6 @@ class TestExtractTimeWindow:
         tw = _extract_time_window("Revenue grew by 20%")
         assert tw is None
 
-    # Fix 3 — range claims with "from" + multiple time refs → None
     def test_from_with_two_years_returns_none(self):
         tw = _extract_time_window("Revenue grew 20% from FY2024 to 2025")
         assert tw is None
@@ -198,8 +210,6 @@ class TestExtractTimeWindow:
         tw = _extract_time_window("ARR grew 30% in FY2023")
         assert tw == {"type": "year", "value": 2023}
 
-
-# ── verify_claim_against_csv ──────────────────────────────────────────────────
 
 class TestVerifyClaim:
     def _df(self, **cols):
@@ -232,7 +242,6 @@ class TestVerifyClaim:
         assert result["verdict"] == "Unverifiable"
 
     def test_unverifiable_weak_column_match(self):
-        # "irrelevant_col" has no relation to "revenue" — threshold blocks the guess
         df = pd.DataFrame({"irrelevant_col": [10, 20]})
         result = verify_claim_against_csv("Revenue increased by 5%", df)
         assert result["verdict"] == "Unverifiable"

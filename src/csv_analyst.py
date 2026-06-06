@@ -2,9 +2,6 @@ import plotly.express as px
 
 
 def summarize_dataset(df):
-    """
-    Create a general summary of the uploaded CSV.
-    """
 
     numeric_cols = df.select_dtypes(include=["number"]).columns.tolist()
     categorical_cols = df.select_dtypes(include=["object", "category"]).columns.tolist()
@@ -21,9 +18,6 @@ def summarize_dataset(df):
 
 
 def find_matching_column(question_lower, columns):
-    """
-    Find whether a column name appears in the user question.
-    """
 
     for col in columns:
         if col.lower() in question_lower:
@@ -41,24 +35,12 @@ def find_matching_column(question_lower, columns):
 
 
 def answer_csv_question(question, df):
-    """
-    Answer simple CSV questions using Pandas.
-
-    Args:
-        question: User question.
-        df: Uploaded CSV as a Pandas DataFrame.
-
-    Returns:
-        answer: Text answer.
-        fig: Plotly chart or None.
-    """
 
     question_lower = question.lower()
 
     numeric_cols = df.select_dtypes(include=["number"]).columns.tolist()
     categorical_cols = df.select_dtypes(include=["object", "category"]).columns.tolist()
 
-    # Dataset summary
     if "summary" in question_lower or "summarize" in question_lower or "overview" in question_lower:
         summary = summarize_dataset(df)
 
@@ -71,7 +53,6 @@ Dataset Summary:
 """
         return answer, None
 
-    # Missing values
     if "missing" in question_lower or "null" in question_lower:
         missing = df.isnull().sum()
         missing = missing[missing > 0].sort_values(ascending=False)
@@ -86,7 +67,6 @@ Dataset Summary:
 
         return answer, None
 
-    # Column list
     if "columns" in question_lower:
         answer = "Columns in the dataset:\n"
 
@@ -95,7 +75,6 @@ Dataset Summary:
 
         return answer, None
 
-    # Numeric columns
     if "numeric" in question_lower:
         if not numeric_cols:
             return "No numeric columns were found in the dataset.", None
@@ -107,7 +86,6 @@ Dataset Summary:
 
         return answer, None
 
-    # Categorical columns
     if "categorical" in question_lower or "category" in question_lower:
         if not categorical_cols:
             return "No categorical columns were found in the dataset.", None
@@ -119,7 +97,6 @@ Dataset Summary:
 
         return answer, None
 
-    # Total / sum
     if "total" in question_lower or "sum" in question_lower:
         matched_col = find_matching_column(question_lower, numeric_cols)
 
@@ -136,7 +113,6 @@ Dataset Summary:
 
             return answer, None
 
-    # Average / mean
     if "average" in question_lower or "mean" in question_lower:
         matched_col = find_matching_column(question_lower, numeric_cols)
 
@@ -153,7 +129,6 @@ Dataset Summary:
 
             return answer, None
 
-    # Highest / max
     if "highest" in question_lower or "maximum" in question_lower or "max" in question_lower:
         matched_col = find_matching_column(question_lower, numeric_cols)
 
@@ -168,7 +143,6 @@ Dataset Summary:
                 answer += f"- {col}: {df[col].max():,.2f}\n"
             return answer, None
 
-    # Lowest / min
     if "lowest" in question_lower or "minimum" in question_lower or "min" in question_lower:
         matched_col = find_matching_column(question_lower, numeric_cols)
 
@@ -183,7 +157,6 @@ Dataset Summary:
                 answer += f"- {col}: {df[col].min():,.2f}\n"
             return answer, None
 
-    # Grouped chart: "show sales by region"
     if "by" in question_lower and categorical_cols and numeric_cols:
         category_col = find_matching_column(question_lower, categorical_cols)
         value_col = find_matching_column(question_lower, numeric_cols)

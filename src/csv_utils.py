@@ -2,30 +2,12 @@ import pandas as pd
 
 
 def load_csv(uploaded_csv):
-    """
-    Load uploaded CSV into a Pandas DataFrame.
-
-    Args:
-        uploaded_csv: CSV file uploaded from Streamlit.
-
-    Returns:
-        df: Pandas DataFrame.
-    """
 
     df = pd.read_csv(uploaded_csv)
     return df
 
 
 def profile_csv(df):
-    """
-    Create a simple profile summary of the uploaded CSV.
-
-    Args:
-        df: Pandas DataFrame.
-
-    Returns:
-        profile: Dictionary containing CSV metadata.
-    """
 
     profile = {
         "rows": df.shape[0],

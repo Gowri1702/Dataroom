@@ -1,22 +1,3 @@
-"""
-Claim verification engine.
-
-Column matching strategy (highest-priority first):
-  1. Exact substring match on normalised column name          → score 1.0
-  2. Business-term map  (claim phrase → target column name)   → score 1.0
-  3. Domain alias map   (canonical → alias list)              → score 0.9
-  4. rapidfuzz WRatio fuzzy match                             → score proportional
-  5. Abstain if best score < MATCH_CONFIDENCE_THRESHOLD
-
-Time-window handling:
-  - Parses Q1/Q2/H1/FY2023 etc. from claims
-  - Abstains from filtering when the claim contains "from" + multiple
-    time references (range claim), to avoid using only part of the data
-
-Fix A: Column-match gate runs FIRST, before any magnitude/direction logic.
-Fix B: Alias map extended with COGS, R&D, LTV, CAC terms.
-Fix C: Non-% multiplier words (doubled/tripled/halved) are verifiable.
-"""
 
 from __future__ import annotations
 import re
@@ -29,15 +10,7 @@ from rapidfuzz import process as fuzz_process, fuzz
 MATCH_CONFIDENCE_THRESHOLD = 0.80
 
 
-# ── Claim extraction ──────────────────────────────────────────────────────────
-
 def extract_claims_from_text(text: str) -> list[str]:
-    """
-    Scan raw text for quantitative business claim sentences.
-    Captures percentage claims, multiplier claims, dollar-magnitude claims,
-    from-X-to-Y range claims, and direction-word + bare-number claims.
-    Deduplicates and caps at 8.
-    """
     direction_words = [
         "increased", "increase", "grew", "growth", "up", "rose", "higher", "surged",
         "jumped", "improved", "expanded", "gained",
@@ -94,8 +67,6 @@ def extract_claims_from_text(text: str) -> list[str]:
     return claims[:8]
 
 
-# ── Direction + change-claim extraction ──────────────────────────────────────
-
 def _detect_direction(claim_lower: str) -> Optional[str]:
     if any(w in claim_lower for w in [
         "increased", "increase", "grew", "growth", "up", "rose", "higher",
@@ -111,27 +82,12 @@ def _detect_direction(claim_lower: str) -> Optional[str]:
 
 
 def _extract_change_claim(claim: str) -> Tuple[Optional[float], Optional[str], float, Optional[str]]:
-    """
-    Returns (claimed_pct, direction, tolerance, special_mode).
-
-    For % claims: tolerance = 5.0, special_mode = None.
-    For multiplier words:
-      "more than doubled"  → (100, increase, 0,  "more_than_doubled")
-      "more than tripled"  → (200, increase, 0,  "more_than_tripled")
-      "nearly doubled"     → (100, increase, 30, None)
-      "nearly tripled"     → (200, increase, 30, None)
-      "doubled"            → (100, increase, 20, None)
-      "tripled"            → (200, increase, 25, None)
-      "halved"             → (50,  decrease, 10, None)
-    Returns (None, None, 5.0, None) when no recognizable pattern is found.
-    """
     claim_lower = claim.lower()
 
     pct_match = re.search(r"(\d+(?:\.\d+)?)\s*%", claim_lower)
     if pct_match:
         return float(pct_match.group(1)), _detect_direction(claim_lower), 5.0, None
 
-    # Longer phrases first to avoid "doubled" shadowing "more than doubled"
     if re.search(r"\bmore\s+than\s+doubled\b", claim_lower):
         return 100.0, "increase", 0.0, "more_than_doubled"
     if re.search(r"\bmore\s+than\s+tripled\b", claim_lower):
@@ -150,63 +106,49 @@ def _extract_change_claim(claim: str) -> Tuple[Optional[float], Optional[str], f
     return None, None, 5.0, None
 
 
-# ── Column matching ───────────────────────────────────────────────────────────
-
 _BUSINESS_TERM_MAP: dict[str, list[str]] = {
-    # NPS / satisfaction
     "net promoter score": ["nps_score", "nps"],
     "nps":                ["nps_score", "nps"],
-    # Headcount
     "headcount":          ["headcount", "head_count", "employees", "staff"],
     "employees":          ["employees", "headcount", "head_count", "staff"],
     "staff":              ["staff", "headcount", "employees"],
     "workforce":          ["headcount", "employees", "workforce"],
-    # Customers
     "paying customers":   ["customers", "paying_customers", "customer"],
     "customer base":      ["customers", "customer_base", "customer"],
     "customers":          ["customers", "customer"],
     "clients":            ["customers", "clients", "client"],
     "accounts":           ["customers", "accounts"],
-    # Churn
     "churn rate":         ["churn_rate_pct", "churn_rate", "churn"],
     "churn":              ["churn_rate_pct", "churn_rate", "churn"],
     "attrition":          ["churn_rate_pct", "attrition", "churn"],
-    # Revenue
     "total revenue":      ["revenue_usd_thousands", "total_revenue", "revenue", "sales"],
     "net revenue":        ["net_revenue", "revenue_usd_thousands", "revenue"],
     "revenue":            ["revenue_usd_thousands", "revenue", "sales"],
     "sales":              ["sales", "revenue_usd_thousands", "revenue"],
-    # Profit / margin
     "gross profit":       ["gross_profit", "gross_margin", "profit"],
     "net income":         ["net_income", "net_profit", "profit"],
     "profit margin":      ["profit_margin", "gross_margin", "margin"],
     "profit":             ["profit", "net_income", "earnings"],
     "earnings":           ["earnings", "net_income", "profit"],
-    # ARR / MRR
     "annual recurring revenue":  ["arr", "annual_recurring_revenue"],
     "monthly recurring revenue": ["mrr", "monthly_recurring_revenue"],
     "arr":                ["arr", "annual_recurring_revenue"],
     "mrr":                ["mrr", "monthly_recurring_revenue"],
-    # Cost / expenses
     "operating costs":    ["operating_cost", "opex", "cost", "expenses"],
     "cost of goods sold": ["cogs_usd_m", "cogs", "cost_of_goods"],
     "cost of goods":      ["cogs_usd_m", "cogs", "cost_of_goods", "cost"],
     "cogs":               ["cogs_usd_m", "cogs"],
     "expenses":           ["expenses", "opex", "cost"],
     "cost":               ["cost", "costs", "expenses"],
-    # R&D
     "research & development":  ["rnd_spend_usd_m", "rnd", "r_and_d", "research"],
     "research and development": ["rnd_spend_usd_m", "rnd", "r_and_d", "research"],
     "r and d":            ["rnd_spend_usd_m", "rnd"],
     "r&d":                ["rnd_spend_usd_m", "rnd"],
-    # LTV
     "customer lifetime value": ["ltv_usd", "ltv", "lifetime_value"],
     "lifetime value":     ["ltv_usd", "ltv", "lifetime_value"],
     "ltv":                ["ltv_usd", "ltv", "lifetime_value"],
-    # CAC
     "customer acquisition cost": ["cac_usd", "cac", "customer_acquisition_cost"],
     "cac":                ["cac_usd", "cac", "customer_acquisition_cost"],
-    # Other common metrics
     "seats":              ["seats", "licenses", "users"],
     "growth rate":        ["growth_rate", "growth"],
     "retention":          ["retention_rate", "retention"],
@@ -233,7 +175,6 @@ _DOMAIN_ALIASES: dict[str, list[str]] = {
 
 
 def _col_contains(col: str, pattern: str) -> bool:
-    """True if the normalised column name contains the pattern as a token."""
     norm_col = col.lower().replace("_", " ").replace("-", " ")
     norm_pat = pattern.lower().replace("_", " ").replace("-", " ")
     return norm_pat in norm_col or norm_col == norm_pat
@@ -242,23 +183,11 @@ def _col_contains(col: str, pattern: str) -> bool:
 def _find_column(
     claim_lower: str, numeric_cols: list[str]
 ) -> Tuple[Optional[str], float, str]:
-    """
-    Return (best_column, match_score 0–1, match_method).
-
-    Priority order:
-      1. Business-term map, multi-word phrases only (longest first)
-      2. Exact substring of normalised column name in the claim
-      3. Business-term map, single-word terms (word-boundary matched)
-      4. Domain alias map
-      5. rapidfuzz WRatio
-    """
     norm_claim = claim_lower.replace("_", " ").replace("-", " ")
 
-    # 1. Multi-word business-term phrases — longest first
     for phrase in sorted(
         (p for p in _BUSINESS_TERM_MAP if " " in p or "&" in p), key=len, reverse=True
     ):
-        # normalise the phrase the same way
         norm_phrase = phrase.replace("_", " ").replace("-", " ")
         if norm_phrase in norm_claim:
             for candidate in _BUSINESS_TERM_MAP[phrase]:
@@ -266,13 +195,11 @@ def _find_column(
                     if _col_contains(col, candidate):
                         return col, 1.0, "business-term"
 
-    # 2. Exact substring match
     for col in numeric_cols:
         norm_col = col.lower().replace("_", " ").replace("-", " ")
         if norm_col in norm_claim:
             return col, 1.0, "exact"
 
-    # 3. Single-word business-term phrases (word-boundary to avoid substring traps)
     for phrase in sorted(
         (p for p in _BUSINESS_TERM_MAP if " " not in p and "&" not in p), key=len, reverse=True
     ):
@@ -282,7 +209,6 @@ def _find_column(
                     if _col_contains(col, candidate):
                         return col, 1.0, "business-term"
 
-    # 4. Domain alias map
     for col in numeric_cols:
         col_lower = col.lower()
         for canonical, aliases in _DOMAIN_ALIASES.items():
@@ -290,7 +216,6 @@ def _find_column(
                 if any(alias in norm_claim for alias in aliases):
                     return col, 0.9, "alias"
 
-    # 5. Fuzzy — WRatio blends partial/token/set ratios
     if numeric_cols:
         col_names = [c.lower().replace("_", " ").replace("-", " ") for c in numeric_cols]
         best = fuzz_process.extractOne(
@@ -305,21 +230,12 @@ def _find_column(
     return None, 0.0, "none"
 
 
-# ── Time-window extraction ────────────────────────────────────────────────────
-
 _QUARTER_RE = re.compile(r"\bQ([1-4])\b", re.IGNORECASE)
 _HALF_RE    = re.compile(r"\bH([12])\b",  re.IGNORECASE)
 _YEAR_RE    = re.compile(r"\b(FY)?(20\d{2}|19\d{2})\b")
 
 
 def _extract_time_window(claim: str) -> Optional[dict]:
-    """
-    Extract a single time reference from the claim.
-
-    If the claim contains "from" AND has multiple time references
-    (suggesting a range like "from FY2024 to 2025"), return None so the
-    verifier uses the full dataset rather than filtering to one slice.
-    """
     q_matches = _QUARTER_RE.findall(claim)
     h_matches = _HALF_RE.findall(claim)
     y_matches = _YEAR_RE.findall(claim)
@@ -341,7 +257,6 @@ def _extract_time_window(claim: str) -> Optional[dict]:
 
 
 def _filter_by_time_window(df: pd.DataFrame, window: dict) -> pd.DataFrame:
-    """Filter DataFrame rows to the specified time window."""
     date_cols = [
         c for c in df.columns
         if any(kw in c.lower() for kw in ("date", "period", "quarter", "month", "year", "time"))
@@ -365,8 +280,6 @@ def _filter_by_time_window(df: pd.DataFrame, window: dict) -> pd.DataFrame:
     return filtered if len(filtered) >= 2 else df
 
 
-# ── Confidence scoring ────────────────────────────────────────────────────────
-
 def _confidence(
     match_score: float,
     direction_match: bool,
@@ -380,16 +293,7 @@ def _confidence(
     return round(min(base, 1.0), 2)
 
 
-# ── Public API ────────────────────────────────────────────────────────────────
-
 def verify_claim_against_csv(claim: str, df: pd.DataFrame) -> dict:
-    """
-    Verify a percentage-change or multiplier-word claim against the CSV.
-
-    Returns a dict with keys:
-      claim, verdict, csv_metric, actual_percent, first_val, last_val,
-      reason, confidence, time_window, match_method
-    """
     claim_lower = claim.lower()
     numeric_cols = df.select_dtypes(include=["number"]).columns.tolist()
 
@@ -411,7 +315,6 @@ def verify_claim_against_csv(claim: str, df: pd.DataFrame) -> dict:
             "reason":         "No numeric columns found in the CSV to verify against.",
         }
 
-    # Fix A: Gate on column match score FIRST, before any magnitude/direction logic
     matched_col, match_score, match_method = _find_column(claim_lower, numeric_cols)
 
     if matched_col is None or match_score < MATCH_CONFIDENCE_THRESHOLD:
@@ -431,7 +334,6 @@ def verify_claim_against_csv(claim: str, df: pd.DataFrame) -> dict:
             ),
         }
 
-    # Fix C: Extract claimed change — % OR multiplier word
     claimed_pct, direction, tolerance, special_mode = _extract_change_claim(claim)
     time_window = _extract_time_window(claim)
 
@@ -499,7 +401,6 @@ def verify_claim_against_csv(claim: str, df: pd.DataFrame) -> dict:
 
     direction_match = (direction is None) or (direction == actual_direction)
 
-    # Fix C: magnitude check depends on special_mode
     if special_mode == "more_than_doubled":
         magnitude_match = actual_pct > 100.0
     elif special_mode == "more_than_tripled":
@@ -509,7 +410,6 @@ def verify_claim_against_csv(claim: str, df: pd.DataFrame) -> dict:
 
     confidence = _confidence(match_score, direction_match, magnitude_match, time_filtered)
 
-    # Human-readable claimed change label
     if special_mode == "more_than_doubled":
         claimed_label = "more than doubled (>100% increase)"
     elif special_mode == "more_than_tripled":

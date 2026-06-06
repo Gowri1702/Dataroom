@@ -1,27 +1,9 @@
-"""
-Evaluation metrics for Dataroom AI.
-
-Provides:
-  - router_accuracy          : fraction of questions routed to the correct destination
-  - retrieval_accuracy_at_k  : fraction of retrievals where at least one top-k chunk
-                               contains an expected keyword
-  - citation_correctness     : fraction of answers that include a (Page N) citation
-  - claim_verification_accuracy : fraction of claim verdicts matching expected verdict
-"""
 
 from __future__ import annotations
 from typing import List, Dict, Any
 
 
-# ── Router ────────────────────────────────────────────────────────────────────
-
 def router_accuracy(results: List[Dict[str, Any]]) -> Dict[str, float]:
-    """
-    Args:
-        results: list of dicts with keys:
-            id, question, expected_route, actual_route
-    Returns dict with 'accuracy' and per-class breakdown.
-    """
     total = len(results)
     if total == 0:
         return {"accuracy": 0.0, "correct": 0, "total": 0, "by_class": {}}
@@ -49,15 +31,7 @@ def router_accuracy(results: List[Dict[str, Any]]) -> Dict[str, float]:
     }
 
 
-# ── Retrieval ─────────────────────────────────────────────────────────────────
-
 def retrieval_accuracy_at_k(results: List[Dict[str, Any]]) -> Dict[str, float]:
-    """
-    Args:
-        results: list of dicts with keys:
-            id, question, expected_keywords, retrieved_texts (list of str)
-    Returns dict with 'accuracy_at_k', 'k', hit count, total.
-    """
     total = len(results)
     if total == 0:
         return {"accuracy_at_k": 0.0, "hits": 0, "total": 0}
@@ -76,15 +50,7 @@ def retrieval_accuracy_at_k(results: List[Dict[str, Any]]) -> Dict[str, float]:
     }
 
 
-# ── Citation correctness ──────────────────────────────────────────────────────
-
 def citation_correctness(results: List[Dict[str, Any]]) -> Dict[str, float]:
-    """
-    Args:
-        results: list of dicts with keys:
-            id, answer (str)
-    Returns fraction of answers that contain a page citation like '(Page N)'.
-    """
     import re
     total = len(results)
     if total == 0:
@@ -99,15 +65,7 @@ def citation_correctness(results: List[Dict[str, Any]]) -> Dict[str, float]:
     }
 
 
-# ── Claim verification ────────────────────────────────────────────────────────
-
 def claim_verification_accuracy(results: List[Dict[str, Any]]) -> Dict[str, float]:
-    """
-    Args:
-        results: list of dicts with keys:
-            id, expected_verdict, actual_verdict
-    Returns accuracy and per-verdict breakdown.
-    """
     total = len(results)
     if total == 0:
         return {"accuracy": 0.0, "correct": 0, "total": 0, "by_verdict": {}}
@@ -134,8 +92,6 @@ def claim_verification_accuracy(results: List[Dict[str, Any]]) -> Dict[str, floa
         },
     }
 
-
-# ── Aggregate report ──────────────────────────────────────────────────────────
 
 def aggregate_report(
     router_res: Dict[str, Any],

@@ -6,12 +6,6 @@ import numpy as np
 
 @st.cache_resource
 def load_embedding_model():
-    """
-    Load the embedding model once and reuse it.
-
-    Returns:
-        model: SentenceTransformer model.
-    """
 
     model = SentenceTransformer("all-MiniLM-L6-v2")
     return model
@@ -61,17 +55,6 @@ def chunk_pdf_pages(pdf_pages, chunk_size=800, overlap=150):
 
 
 def create_faiss_index(chunks, model):
-    """
-    Create a FAISS vector index from text chunks.
-
-    Args:
-        chunks: List of text chunks.
-        model: SentenceTransformer embedding model.
-
-    Returns:
-        index: FAISS index.
-        embeddings: Numpy array of chunk embeddings.
-    """
 
     texts = [chunk["text"] for chunk in chunks]
 
@@ -89,19 +72,6 @@ def create_faiss_index(chunks, model):
 
 
 def retrieve_relevant_chunks(question, chunks, index, model, top_k=4):
-    """
-    Retrieve the most relevant PDF chunks for a user question.
-
-    Args:
-        question: User question.
-        chunks: List of text chunks.
-        index: FAISS vector index.
-        model: SentenceTransformer embedding model.
-        top_k: Number of chunks to retrieve.
-
-    Returns:
-        results: List of relevant chunks with similarity distance.
-    """
 
     question_embedding = model.encode([question], convert_to_numpy=True)
     question_embedding = question_embedding.astype("float32")

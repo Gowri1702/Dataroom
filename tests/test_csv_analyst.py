@@ -1,10 +1,7 @@
-"""Tests for src/csv_analyst.py (keyword-based analyst)"""
 import pandas as pd
 import pytest
 from src.csv_analyst import answer_csv_question, find_matching_column, summarize_dataset
 
-
-# ── Fixtures ──────────────────────────────────────────────────────────────────
 
 @pytest.fixture
 def sample_df():
@@ -24,8 +21,6 @@ def missing_df():
         "region":  ["A", None, "C"],
     })
 
-
-# ── summarize_dataset ─────────────────────────────────────────────────────────
 
 class TestSummarizeDataset:
     def test_returns_dict(self, sample_df):
@@ -52,8 +47,6 @@ class TestSummarizeDataset:
         assert summary["missing_values"]["region"] == 1
 
 
-# ── find_matching_column ──────────────────────────────────────────────────────
-
 class TestFindMatchingColumn:
     def test_exact_match(self):
         col = find_matching_column("total revenue by region", ["revenue", "arr"])
@@ -71,8 +64,6 @@ class TestFindMatchingColumn:
         col = find_matching_column("revenue arr mrr", ["revenue", "arr", "mrr"])
         assert col == "revenue"
 
-
-# ── answer_csv_question ───────────────────────────────────────────────────────
 
 class TestAnswerCsvQuestion:
     def test_summary_question(self, sample_df):

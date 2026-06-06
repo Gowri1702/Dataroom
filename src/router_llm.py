@@ -1,16 +1,3 @@
-"""
-LLM-based intent classifier for question routing.
-
-Returns:
-    {
-        "intent":     "pdf" | "csv" | "both",
-        "confidence": 0.0 – 1.0,
-        "reasoning":  "short explanation"
-    }
-
-Falls back to keyword router if the OpenAI API key is absent or the LLM
-response cannot be parsed.
-"""
 
 from __future__ import annotations
 import json
@@ -51,10 +38,6 @@ Rules:
 
 
 def route_question_llm(question: str) -> RouteResult:
-    """
-    Classify a question using the LLM.  Falls back to the keyword router
-    with confidence=0.5 if the API key is missing or parsing fails.
-    """
     client = get_openai_client()
 
     if client is None:
@@ -73,7 +56,6 @@ def route_question_llm(question: str) -> RouteResult:
         )
         raw = response.choices[0].message.content.strip()
 
-        # Strip markdown fences if present
         raw = re.sub(r"^```(?:json)?\s*", "", raw, flags=re.MULTILINE)
         raw = re.sub(r"\s*```$", "", raw, flags=re.MULTILINE)
 

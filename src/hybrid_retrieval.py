@@ -1,14 +1,3 @@
-"""
-Hybrid retrieval: FAISS semantic search + BM25 keyword search + score fusion.
-
-The two retrievers are complementary:
-  - FAISS catches semantic similarity (paraphrases, synonyms)
-  - BM25 catches exact term matches (numbers, ticker symbols, product names)
-
-Scores are combined with Reciprocal Rank Fusion (RRF), which avoids the need
-to normalise incompatible score scales.  An optional cross-encoder reranker
-can be added later without changing the interface.
-"""
 
 from __future__ import annotations
 import math
@@ -18,13 +7,9 @@ import numpy as np
 from rank_bm25 import BM25Okapi
 
 
-# ── Tokenisation ──────────────────────────────────────────────────────────────
-
 def _tokenise(text: str) -> List[str]:
     return text.lower().split()
 
-
-# ── BM25 retrieval ────────────────────────────────────────────────────────────
 
 def build_bm25_index(chunks: List[Dict[str, Any]]) -> BM25Okapi:
     corpus = [_tokenise(c["text"]) for c in chunks]
@@ -46,8 +31,6 @@ def retrieve_bm25(
     ]
 
 
-# ── FAISS retrieval ───────────────────────────────────────────────────────────
-
 def retrieve_faiss(
     question: str,
     chunks: List[Dict[str, Any]],
@@ -67,8 +50,6 @@ def retrieve_faiss(
     return results
 
 
-# ── Reciprocal Rank Fusion ────────────────────────────────────────────────────
-
 def _rrf_score(rank: int, k: int = 60) -> float:
     return 1.0 / (k + rank)
 
@@ -80,12 +61,6 @@ def fuse_results(
     faiss_weight: float = 0.6,
     bm25_weight: float = 0.4,
 ) -> List[Dict[str, Any]]:
-    """
-    Merge FAISS and BM25 results with Reciprocal Rank Fusion.
-
-    faiss_weight / bm25_weight control the blend.  Defaults favour semantic
-    search slightly, which works well for free-text business questions.
-    """
     scores: Dict[int, float] = {}
     meta: Dict[int, Dict] = {}
 
@@ -112,8 +87,6 @@ def fuse_results(
     ]
 
 
-# ── Public API ────────────────────────────────────────────────────────────────
-
 def retrieve_hybrid(
     question: str,
     chunks: List[Dict[str, Any]],
@@ -124,12 +97,6 @@ def retrieve_hybrid(
     faiss_weight: float = 0.6,
     bm25_weight: float = 0.4,
 ) -> List[Dict[str, Any]]:
-    """
-    Run FAISS + BM25 retrieval and fuse results.
-
-    Returns top_k chunks sorted by hybrid score (highest first),
-    with keys: chunk_id, page_number, text, distance, hybrid_score.
-    """
     faiss_r = retrieve_faiss(question, chunks, faiss_index, model, top_k=top_k * 3)
     bm25_r  = retrieve_bm25(question, chunks, bm25_index, top_k=top_k * 3)
     return fuse_results(faiss_r, bm25_r, top_k=top_k,

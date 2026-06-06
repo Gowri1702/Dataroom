@@ -1,10 +1,8 @@
-"""Tests for src/router.py (keyword router)"""
 import pytest
 from src.router import route_question
 
 
 class TestRouteQuestion:
-    # PDF routes
     def test_pdf_document_keyword(self):
         assert route_question("What does the document say?") == "pdf"
 
@@ -23,7 +21,6 @@ class TestRouteQuestion:
     def test_pdf_narrative(self):
         assert route_question("Describe the narrative in the report.") == "pdf"
 
-    # CSV routes
     def test_csv_total(self):
         assert route_question("What is the total revenue?") == "csv"
 
@@ -48,7 +45,6 @@ class TestRouteQuestion:
     def test_csv_summary(self):
         assert route_question("Give me a summary of the dataset.") == "csv"
 
-    # Both routes (should take precedence)
     def test_both_verify(self):
         assert route_question("Verify the revenue claim against the data.") == "both"
 
@@ -64,15 +60,11 @@ class TestRouteQuestion:
     def test_both_validate(self):
         assert route_question("Validate the growth claim against the data.") == "both"
 
-    # Both takes precedence over csv keywords
     def test_both_beats_csv(self):
-        # "total" is csv keyword, but "verify" is both keyword
         assert route_question("Verify the total revenue claim.") == "both"
 
-    # Default fallback
     def test_default_is_pdf(self):
         assert route_question("This question has no matching keyword.") == "pdf"
 
-    # Case insensitivity
     def test_case_insensitive(self):
         assert route_question("WHAT IS THE TOTAL REVENUE?") == "csv"

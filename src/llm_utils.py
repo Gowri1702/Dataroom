@@ -5,24 +5,19 @@ from openai import OpenAI
 
 
 def _load_env():
-    # The project stores the env file as " .env" (leading space).
-    # load_dotenv() without args only finds ".env", so we search explicitly.
     root = Path(__file__).parent.parent
     for name in (" .env", ".env"):
         candidate = root / name
         if candidate.exists():
             load_dotenv(dotenv_path=candidate)
             return
-    load_dotenv()  # fallback: search default locations
+    load_dotenv()
 
 
 _load_env()
 
 
 def get_openai_client():
-    """
-    Create an OpenAI client using the API key from the .env file.
-    """
 
     api_key = os.getenv("OPENAI_API_KEY")
 
@@ -34,9 +29,6 @@ def get_openai_client():
 
 
 def build_context_from_chunks(chunks):
-    """
-    Convert retrieved PDF chunks into a clean context string for the LLM.
-    """
 
     context_parts = []
 
@@ -53,16 +45,6 @@ def build_context_from_chunks(chunks):
 
 
 def answer_pdf_question(question, retrieved_chunks):
-    """
-    Generate a citation-grounded answer using retrieved PDF chunks.
-
-    Args:
-        question: User question.
-        retrieved_chunks: Relevant PDF chunks from FAISS retrieval.
-
-    Returns:
-        answer: LLM-generated answer with citations.
-    """
 
     client = get_openai_client()
 

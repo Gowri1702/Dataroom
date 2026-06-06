@@ -19,9 +19,6 @@ from src.router import route_question
 from src.router_llm import route_question_llm
 from src.claim_checker import verify_claim_against_csv, extract_claims_from_text
 from src.hybrid_retrieval import build_bm25_index, retrieve_hybrid
-# ==========================================================
-# PAGE CONFIG
-# ==========================================================
 
 st.set_page_config(
     page_title="Dataroom AI",
@@ -30,10 +27,6 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-
-# ==========================================================
-# GLOBAL CSS
-# ==========================================================
 
 st.markdown(
     """
@@ -494,20 +487,15 @@ div[data-testid="stVerticalBlockBorderWrapper"] {
 )
 
 
-# ==========================================================
-# PLOTLY THEME (refined, professional)
-# ==========================================================
-
-# Vibrant chart palette — intentionally distinct from the indigo UI chrome
-CHART_PRIMARY = "#0ea5e9"   # sky blue as default single-series colour
+CHART_PRIMARY = "#0ea5e9"
 CHART_PALETTE = [
-    "#0ea5e9",  # sky
-    "#10b981",  # emerald
-    "#f59e0b",  # amber
-    "#f43f5e",  # rose
-    "#8b5cf6",  # violet
-    "#06b6d4",  # cyan
-    "#fb923c",  # orange
+    "#0ea5e9",
+    "#10b981",
+    "#f59e0b",
+    "#f43f5e",
+    "#8b5cf6",
+    "#06b6d4",
+    "#fb923c",
 ]
 
 
@@ -558,7 +546,6 @@ def style_bars(fig, with_labels=False):
 
 
 def make_chart(df, chart_type, x_col, y_col, title=""):
-    """Build a Plotly figure of the requested type and apply the app theme."""
     if chart_type == "Bar":
         fig = px.bar(df, x=x_col, y=y_col, color_discrete_sequence=CHART_PALETTE)
         style_bars(fig, with_labels=True)
@@ -578,9 +565,7 @@ def make_chart(df, chart_type, x_col, y_col, title=""):
     return style_fig(fig, height=340, title=title)
 
 
-# ---------- Sparkline SVG helper ----------
 def make_sparkline(values, color="#4f46e5", width=80, height=34):
-    """Return a tiny inline SVG polyline from a list of numbers."""
     vals = [v for v in values if v is not None]
     if len(vals) < 2:
         return ""
@@ -601,12 +586,7 @@ def make_sparkline(values, color="#4f46e5", width=80, height=34):
     )
 
 
-# ==========================================================
-# UI HELPERS
-# ==========================================================
-
 def render_hero(eyebrow, title, subtitle):
-    """Hero uses divs, not h1, so Streamlit's h1 styles can't override the white text."""
     st.markdown(
         f"""
         <div class="hero">
@@ -627,7 +607,6 @@ def render_metric(label, value, delta, kind="positive", sparkline_svg=""):
     }.get(kind, "metric-delta-neutral")
     icon = {"positive": "↑", "negative": "↓", "neutral": "•"}.get(kind, "•")
     spark = f'<div class="metric-spark">{sparkline_svg}</div>' if sparkline_svg else ""
-    # st.html() guarantees HTML renders without markdown interference
     st.html(f"""
         <div class="metric-card">
             <div class="metric-label">{label}</div>
@@ -660,13 +639,11 @@ def get_numeric_and_categorical_columns(df):
 
 
 def get_chart_categorical_cols(df, max_unique=50):
-    """Filter out high-cardinality columns (like contract_id) so bar charts show real variation."""
     cats = df.select_dtypes(include=["object", "category"]).columns.tolist()
     return [c for c in cats if 1 < df[c].nunique() <= max_unique]
 
 
 def build_summary_table(df, numeric_cols):
-    """Clean HTML stats table — replaces dark df.describe()."""
     rows = []
     for c in numeric_cols:
         s = df[c]
@@ -703,10 +680,6 @@ def build_summary_table(df, numeric_cols):
     """
 
 
-# ==========================================================
-# CALLBACKS for clickable suggested questions
-# ==========================================================
-
 def relevance_label(distance):
     sim = 1 / (1 + distance)
     if sim >= 0.45:
@@ -718,7 +691,6 @@ def relevance_label(distance):
 
 
 def retrieve_chunks(question, top_k=4):
-    """Use hybrid retrieval when BM25 is available, else fall back to FAISS-only."""
     chunks = st.session_state["pdf_chunks"]
     faiss_index = st.session_state["faiss_index"]
     model = st.session_state["embedding_model"]
@@ -741,12 +713,7 @@ def set_smart_question(q):
     st.session_state["smart_question"] = q
 
 
-# ==========================================================
-# CLAIM CHART + CARD HELPERS
-# ==========================================================
-
 def make_claim_chart(result):
-    """Compact before → after bar chart for a single verified claim."""
     fv = result.get("first_val")
     lv = result.get("last_val")
     if fv is None or lv is None or result.get("actual_percent") is None:
@@ -778,7 +745,6 @@ def make_claim_chart(result):
 
 
 def render_verified_claim_card(result, show_chart=True):
-    """Full claim verification result card with coloured verdict, metrics, optional chart."""
     verdict      = result["verdict"]
     v_color  = {"Supported": "#059669", "Contradicted": "#dc2626", "Unverifiable": "#b45309"}.get(verdict, "#6b7280")
     v_bg     = {"Supported": "#ecfdf5", "Contradicted": "#fef2f2", "Unverifiable": "#fffbeb"}.get(verdict, "#f9fafb")
@@ -834,19 +800,13 @@ def render_verified_claim_card(result, show_chart=True):
             st.write(result["reason"])
 
 
-# ==========================================================
-# MARKDOWN REPORT GENERATOR
-# ==========================================================
-
 def generate_markdown_report():
-    """Build a plain-text Markdown executive report from session state."""
     lines = [
         "# Dataroom AI — Executive Report",
         f"Generated: {date.today().strftime('%B %d, %Y')}",
         "",
     ]
 
-    # PDF section
     if "pdf_text" in st.session_state:
         pages = st.session_state.get("pdf_pages", [])
         chunks = st.session_state.get("pdf_chunks", [])
@@ -858,7 +818,6 @@ def generate_markdown_report():
             "",
         ]
 
-    # CSV section
     if "df" in st.session_state:
         df = st.session_state["df"]
         num_cols, cat_cols = get_numeric_and_categorical_columns(df)
@@ -877,7 +836,6 @@ def generate_markdown_report():
             lines.append(f"| {c} | {df[c].sum():,.2f} | {df[c].mean():,.2f} | {df[c].max():,.2f} |")
         lines.append("")
 
-    # Claim verification
     verified = st.session_state.get("report_verified_claims", [])
     if verified:
         lines += [
@@ -903,12 +861,7 @@ def set_csv_question(q):
     st.session_state["csv_q"] = q
 
 
-# ==========================================================
-# SIDEBAR
-# ==========================================================
-
 with st.sidebar:
-    # Brand header
     st.markdown(
         """
         <div style="padding: 1.25rem 16px 1rem 16px;">
@@ -931,7 +884,6 @@ with st.sidebar:
         label_visibility="collapsed",
     )
 
-    # Workspace file status
     st.markdown('<div style="height:1px;background:rgba(255,255,255,0.07);margin:12px 16px;"></div>', unsafe_allow_html=True)
     pdf_loaded = "pdf_text" in st.session_state
     csv_loaded = "df" in st.session_state
@@ -965,12 +917,7 @@ with st.sidebar:
     )
 
 
-# ==========================================================
-# DASHBOARD
-# ==========================================================
-
 if page == "Dashboard":
-    # ── Page header (DocInsight style — no big gradient hero) ─────────────────
     has_pdf = "pdf_text" in st.session_state
     has_csv = "df" in st.session_state
 
@@ -986,7 +933,6 @@ if page == "Dashboard":
         unsafe_allow_html=True,
     )
 
-    # ── DocInsight-style document status card ─────────────────────────────────
     if has_pdf or has_csv:
         pdf_pages = st.session_state.get("pdf_pages", [])
         pdf_chars = len(st.session_state.get("pdf_text", ""))
@@ -1003,7 +949,6 @@ if page == "Dashboard":
             '<div class="doc-status-warn">⚠ No CSV uploaded</div>'
         )
 
-        # Auto key takeaway
         takeaway = "Upload a CSV to see an auto-generated takeaway."
         if has_csv:
             df = st.session_state["df"]
@@ -1060,7 +1005,6 @@ if page == "Dashboard":
             unsafe_allow_html=True,
         )
 
-    # ── Metric cards with sparklines ──────────────────────────────────────────
     if has_csv:
         df = st.session_state["df"]
         numeric_cols, _ = get_numeric_and_categorical_columns(df)
@@ -1081,7 +1025,6 @@ if page == "Dashboard":
 
         st.markdown("<div style='height:1.25rem'></div>", unsafe_allow_html=True)
 
-    # ── Charts row ────────────────────────────────────────────────────────────
     if has_csv:
         df = st.session_state["df"]
         numeric_cols, _ = get_numeric_and_categorical_columns(df)
@@ -1131,7 +1074,6 @@ if page == "Dashboard":
                 else:
                     render_status("Need a categorical + numeric column for breakdown chart", "warning")
 
-        # ── Key Insights panel (like DocInsight's bottom section) ─────────────
         st.markdown("<div style='height:0.5rem'></div>", unsafe_allow_html=True)
         with st.container(border=True):
             render_section_label("Key insights")
@@ -1178,9 +1120,6 @@ if page == "Dashboard":
     else:
         render_status("Upload a CSV to view metrics and charts", "warning")
 
-# ==========================================================
-# SMART ANALYST — ROUTED PDF / CSV / BOTH
-# ==========================================================
 
 if page == "Smart Analyst":
     render_hero(
@@ -1223,9 +1162,6 @@ if page == "Smart Analyst":
                 f'</div>'
             )
 
-            # -----------------------------
-            # PDF ROUTE
-            # -----------------------------
             if route == "pdf":
                 if "faiss_index" in st.session_state and "pdf_chunks" in st.session_state:
                     retrieval_label = "hybrid (FAISS+BM25)" if "bm25_index" in st.session_state else "semantic (FAISS)"
@@ -1261,9 +1197,6 @@ if page == "Smart Analyst":
                 else:
                     render_status("Upload a PDF first to answer document questions.", "warning")
 
-            # -----------------------------
-            # CSV ROUTE
-            # -----------------------------
             elif route == "csv":
                 if "df" in st.session_state:
                     df = st.session_state["df"]
@@ -1282,9 +1215,6 @@ if page == "Smart Analyst":
                 else:
                     render_status("Upload a CSV first to answer spreadsheet questions.", "warning")
 
-            # -----------------------------
-            # BOTH ROUTE — live claim verification
-            # -----------------------------
             elif route == "both":
                 pdf_ready = "faiss_index" in st.session_state and "pdf_chunks" in st.session_state
                 csv_ready = "df" in st.session_state
@@ -1322,7 +1252,6 @@ if page == "Smart Analyst":
                             "warning",
                         )
 
-                    # Supporting PDF evidence
                     with st.spinner("Retrieving supporting PDF evidence..."):
                         evi = retrieve_chunks(smart_question, top_k=3)
                     with st.container(border=True):
@@ -1362,11 +1291,6 @@ if page == "Smart Analyst":
                 )
 
 
-
-# ==========================================================
-# UPLOAD
-# ==========================================================
-
 if page == "Upload":
     render_hero(
         "File workspace",
@@ -1374,7 +1298,6 @@ if page == "Upload":
         "Add a PDF and a CSV to unlock the full analyst workspace.",
     )
 
-    # ── Custom upload zone cards ───────────────────────────────────────────────
     st.markdown("""
     <style>
     .upload-card {
@@ -1551,10 +1474,6 @@ if page == "Upload":
                 st.dataframe(cmiss, use_container_width=True, height=280, hide_index=True)
 
 
-# ==========================================================
-# AI ANALYST (PDF RAG)
-# ==========================================================
-
 if page == "AI Analyst":
     render_hero(
         "PDF RAG assistant",
@@ -1600,7 +1519,6 @@ if page == "AI Analyst":
 
                 with st.container(border=True):
                     render_section_label("Retrieved evidence")
-                    # Group chunks by page
                     pages_seen = {}
                     for r in results:
                         pg = r["page_number"]
@@ -1638,10 +1556,6 @@ if page == "AI Analyst":
                     use_container_width=True,
                 )
 
-
-# ==========================================================
-# CSV ANALYST
-# ==========================================================
 
 if page == "CSV Analyst":
     render_hero(
@@ -1747,10 +1661,6 @@ if page == "CSV Analyst":
                     )
 
 
-# ==========================================================
-# VERIFY CLAIMS
-# ==========================================================
-
 if page == "Verify Claims":
     render_hero(
         "Document-data consistency",
@@ -1763,7 +1673,6 @@ if page == "Verify Claims":
     else:
         df = st.session_state["df"]
 
-        # ── Section 1: Auto-extract from PDF ──────────────────────────────────
         has_pdf = "pdf_text" in st.session_state
         with st.container(border=True):
             hcol1, hcol2 = st.columns([4, 1])
@@ -1787,7 +1696,7 @@ if page == "Verify Claims":
                 with st.spinner("Scanning PDF for percentage-change claims…"):
                     found = extract_claims_from_text(st.session_state["pdf_text"])
                 st.session_state["extracted_claims"]  = found
-                st.session_state.pop("verified_claims", None)   # reset old results
+                st.session_state.pop("verified_claims", None)
 
             if "extracted_claims" in st.session_state:
                 found = st.session_state["extracted_claims"]
@@ -1796,7 +1705,6 @@ if page == "Verify Claims":
                 else:
                     render_status(f"Found {len(found)} claim(s) in the PDF", "success")
 
-                    # Show the list with Verify All button
                     for i, c in enumerate(found):
                         st.markdown(f"**{i+1}.** {c}")
 
@@ -1805,12 +1713,10 @@ if page == "Verify Claims":
                             st.session_state["verified_claims"] = [
                                 verify_claim_against_csv(c, df) for c in found
                             ]
-                            # Also store for Reports page
                             st.session_state["report_verified_claims"] = st.session_state["verified_claims"]
 
                     if "verified_claims" in st.session_state:
                         st.markdown("---")
-                        # Summary row
                         vc = st.session_state["verified_claims"]
                         supported    = sum(1 for r in vc if r["verdict"] == "Supported")
                         contradicted = sum(1 for r in vc if r["verdict"] == "Contradicted")
@@ -1823,7 +1729,6 @@ if page == "Verify Claims":
                         for res in vc:
                             render_verified_claim_card(res, show_chart=True)
 
-        # ── Section 2: Manual single claim ────────────────────────────────────
         with st.container(border=True):
             render_section_label("Manual claim check")
             claim_text = st.text_input(
@@ -1846,10 +1751,6 @@ if page == "Verify Claims":
                 "_Tip: the claim checker compares the first row value to the last row value in the matched column._"
             )
 
-
-# ==========================================================
-# REPORTS (redesigned — clean HTML summary table, no dark df.describe)
-# ==========================================================
 
 if page == "Reports":
     render_hero(
@@ -1966,7 +1867,6 @@ if page == "Reports":
                 use_container_width=True,
             )
 
-    # ── Claim verification section (below the two-column layout) ─────────────
     st.markdown("<div style='height:1rem'></div>", unsafe_allow_html=True)
     with st.container(border=True):
         render_section_label("Claim verification")

@@ -1,16 +1,3 @@
-"""
-LLM-powered CSV analyst.
-
-The LLM is given the DataFrame schema and asked to produce a single-expression
-Pandas statement.  The generated code is executed in a tightly restricted
-namespace that contains ONLY the DataFrame and the Pandas library.
-
-Safety rules enforced before execution:
-  - Block: import, __import__, open, exec, eval, os, sys, subprocess,
-           write, read, file, shutil, socket, builtins
-  - Only allow assignment to `result`
-  - Execution is wrapped in try/except; errors surface as plain text answers
-"""
 
 from __future__ import annotations
 import re
@@ -22,8 +9,6 @@ import plotly.express as px
 
 from src.llm_utils import get_openai_client
 
-
-# ── Safety ────────────────────────────────────────────────────────────────────
 
 _BLOCKED = re.compile(
     r"\b(import|__import__|open|exec\b|eval\b|os\b|sys\b|subprocess|"
@@ -44,8 +29,6 @@ def _is_safe(code: str) -> Tuple[bool, str]:
     return True, ""
 
 
-# ── Schema builder ────────────────────────────────────────────────────────────
-
 def _build_schema(df: pd.DataFrame) -> str:
     lines = [f"Shape: {df.shape[0]} rows x {df.shape[1]} columns", "Columns:"]
     for col in df.columns:
@@ -54,8 +37,6 @@ def _build_schema(df: pd.DataFrame) -> str:
         lines.append(f"  - {col} ({dtype}): sample = {sample}")
     return "\n".join(lines)
 
-
-# ── LLM code generation ───────────────────────────────────────────────────────
 
 _SYSTEM = (
     "You are a Pandas code generator. "
@@ -87,21 +68,16 @@ def _generate_pandas_code(question: str, schema: str) -> str:
         max_tokens=300,
     )
     code = response.choices[0].message.content.strip()
-    # Strip markdown fences if the model adds them
     code = re.sub(r"^```(?:python)?\s*", "", code, flags=re.MULTILINE)
     code = re.sub(r"\s*```$", "", code, flags=re.MULTILINE)
     return code.strip()
 
 
-# ── Execution ─────────────────────────────────────────────────────────────────
-
 def _execute_code(code: str, df: pd.DataFrame) -> Any:
     namespace = {"df": df, "pd": pd}
-    exec(code, {"__builtins__": {}}, namespace)  # noqa: S102
+    exec(code, {"__builtins__": {}}, namespace)
     return namespace.get("result")
 
-
-# ── Chart inference ───────────────────────────────────────────────────────────
 
 def _maybe_chart(result: Any, question: str):
     if not isinstance(result, pd.DataFrame):
@@ -116,8 +92,6 @@ def _maybe_chart(result: Any, question: str):
     return fig
 
 
-# ── Natural-language formatter ────────────────────────────────────────────────
-
 _FORMAT_SYSTEM = (
     "You are a data analyst writing a one-sentence answer for a business user. "
     "Rules:\n"
@@ -131,12 +105,10 @@ _FORMAT_SYSTEM = (
 
 
 def _format_result(question: str, raw_result: Any) -> str:
-    """Make a second LLM call to turn a raw Python value into a clean sentence."""
     client = get_openai_client()
     if client is None:
         return str(raw_result)
 
-    # Truncate very large raw results before sending
     raw_str = str(raw_result)
     if len(raw_str) > 1500:
         raw_str = raw_str[:1500] + "\n... (truncated)"
@@ -157,17 +129,9 @@ def _format_result(question: str, raw_result: Any) -> str:
         return raw_str
 
 
-# ── Public API ────────────────────────────────────────────────────────────────
-
 def answer_csv_question_llm(
     question: str, df: pd.DataFrame
 ) -> Tuple[str, Optional[Any]]:
-    """
-    Use the LLM to generate and execute a Pandas expression, then format the
-    raw result into a clean natural-language sentence.
-
-    Returns (answer_text, plotly_fig_or_None).
-    """
     client = get_openai_client()
     if client is None:
         return (
@@ -196,7 +160,6 @@ def answer_csv_question_llm(
 
     if isinstance(result, pd.DataFrame):
         fig = _maybe_chart(result, question)
-        # For DataFrames that produce a chart, summarise the top insight
         raw_str = (
             result.to_string(index=False)
             if len(result) <= 20
@@ -209,6 +172,5 @@ def answer_csv_question_llm(
         answer = _format_result(question, result.to_string())
         return answer, None
 
-    # Scalar / dict / other — always format
     answer = _format_result(question, result)
     return answer, None

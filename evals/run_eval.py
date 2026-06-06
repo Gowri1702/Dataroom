@@ -1,20 +1,9 @@
-"""
-Run the Dataroom AI evaluation suite.
-
-Usage:
-    source venv/bin/activate
-    python evals/run_eval.py                     # router + claim evals (no PDF/CSV needed)
-    python evals/run_eval.py --full              # all evals (requires uploaded PDF/CSV session)
-
-Outputs a report to stdout and writes evals/results_latest.json.
-"""
 
 from __future__ import annotations
 import sys, json, argparse
 from pathlib import Path
 import pandas as pd
 
-# Make src/ importable when run from the project root
 ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(ROOT))
 
@@ -36,8 +25,6 @@ def load_dataset() -> dict:
         return json.load(f)
 
 
-# ── Router eval ───────────────────────────────────────────────────────────────
-
 def run_router_eval(data: dict) -> list[dict]:
     results = []
     for item in data["router_eval"]:
@@ -51,8 +38,6 @@ def run_router_eval(data: dict) -> list[dict]:
         })
     return results
 
-
-# ── Claim verification eval ───────────────────────────────────────────────────
 
 def run_claim_eval(data: dict) -> list[dict]:
     results = []
@@ -71,8 +56,6 @@ def run_claim_eval(data: dict) -> list[dict]:
         })
     return results
 
-
-# ── Retrieval eval (needs a real FAISS index built from a PDF) ────────────────
 
 def run_retrieval_eval(data: dict, chunks, index, model) -> list[dict]:
     from src.rag_utils import retrieve_relevant_chunks
@@ -95,8 +78,6 @@ def run_retrieval_eval(data: dict, chunks, index, model) -> list[dict]:
     return results
 
 
-# ── Citation eval (needs live LLM answers) ────────────────────────────────────
-
 def run_citation_eval(data: dict, chunks, index, model) -> list[dict]:
     from src.rag_utils import retrieve_relevant_chunks
     from src.llm_utils import answer_pdf_question
@@ -113,8 +94,6 @@ def run_citation_eval(data: dict, chunks, index, model) -> list[dict]:
         results.append({"id": item["id"], "answer": answer})
     return results
 
-
-# ── Pretty-print helpers ──────────────────────────────────────────────────────
 
 def _print_section(title: str, rows: list[dict], cols: list[str]) -> None:
     print(f"\n{'─' * 60}")
@@ -136,8 +115,6 @@ def _print_section(title: str, rows: list[dict], cols: list[str]) -> None:
         print("  ".join(vals))
 
 
-# ── Main ──────────────────────────────────────────────────────────────────────
-
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -153,7 +130,6 @@ def main():
     data = load_dataset()
     all_results: dict = {}
 
-    # ── Always run: router + claim ────────────────────────────────────────────
     print("\nRunning router eval...")
     router_results = run_router_eval(data)
     all_results["router"] = router_results
@@ -177,7 +153,6 @@ def main():
     retrieval_metrics = {"accuracy_at_k": 0.0, "hits": 0, "total": 0}
     citation_metrics  = {"accuracy": 0.0, "cited": 0, "total": 0}
 
-    # ── Optional: retrieval + citation ────────────────────────────────────────
     if args.full:
         if not args.pdf:
             print("\n[SKIP] --full requires --pdf <path_to_pdf>")
@@ -205,7 +180,6 @@ def main():
             all_results["citation"] = citation_results
             citation_metrics = citation_correctness(citation_results)
 
-    # ── Final report ──────────────────────────────────────────────────────────
     print("\n" + aggregate_report(
         router_metrics,
         retrieval_metrics,

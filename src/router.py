@@ -1,13 +1,3 @@
-"""
-Keyword-based question router.
-
-Uses word-boundary matching (\b) for single-word keywords so that short tokens
-like "arr", "sum", "max", "min", "match" don't fire inside longer words
-(e.g. "narrative", "summarize", "matching").
-
-Multi-word phrases (e.g. "by region", "against the csv") still use plain
-substring matching because they inherently avoid false positives.
-"""
 
 import re
 
@@ -24,14 +14,6 @@ def _any_keyword(text: str, keywords: list[str]) -> bool:
 
 
 def route_question(question: str) -> str:
-    """
-    Route the user question to the correct analysis system.
-
-    Returns:
-        "pdf"  -> PDF/document question
-        "csv"  -> spreadsheet/data question
-        "both" -> needs PDF + CSV comparison
-    """
     q = question.lower()
 
     pdf_keywords = [

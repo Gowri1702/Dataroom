@@ -1,10 +1,7 @@
-"""Tests for src/rag_utils.py"""
 import numpy as np
 import pytest
 from src.rag_utils import chunk_pdf_pages, create_faiss_index, retrieve_relevant_chunks
 
-
-# ── Fixtures ──────────────────────────────────────────────────────────────────
 
 @pytest.fixture(scope="module")
 def embedding_model():
@@ -15,8 +12,6 @@ def embedding_model():
 def _make_pages(texts):
     return [{"page_number": i + 1, "text": t} for i, t in enumerate(texts)]
 
-
-# ── chunk_pdf_pages ───────────────────────────────────────────────────────────
 
 class TestChunkPdfPages:
     def test_basic_chunking(self):
@@ -66,14 +61,11 @@ class TestChunkPdfPages:
         text = "ABCDEFGHIJKLMNOPQRSTUVWXYZ" * 40
         pages = _make_pages([text])
         chunks = chunk_pdf_pages(pages, chunk_size=100, overlap=20)
-        # The end of chunk N and the start of chunk N+1 should overlap
         if len(chunks) >= 2:
             end_of_first = chunks[0]["text"][-20:]
             start_of_second = chunks[1]["text"][:20]
             assert end_of_first == start_of_second
 
-
-# ── create_faiss_index ────────────────────────────────────────────────────────
 
 class TestCreateFaissIndex:
     def test_index_created(self, embedding_model):
@@ -95,8 +87,6 @@ class TestCreateFaissIndex:
         index, _ = create_faiss_index(chunks, embedding_model)
         assert index.ntotal == len(chunks)
 
-
-# ── retrieve_relevant_chunks ──────────────────────────────────────────────────
 
 class TestRetrieveRelevantChunks:
     @pytest.fixture

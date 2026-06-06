@@ -2,16 +2,6 @@ import fitz
 
 
 def extract_pdf_text(uploaded_pdf):
-    """
-    Extract text from an uploaded PDF file.
-
-    Args:
-        uploaded_pdf: PDF file uploaded from Streamlit.
-
-    Returns:
-        full_text: All extracted PDF text.
-        pages: A list containing page number and text for each page.
-    """
 
     if uploaded_pdf is None:
         return "", []
